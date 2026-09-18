@@ -123,10 +123,10 @@ class BusRepositoryTest {
             val validCoords = stations.filter { it.geo != null && it.geo.lat > 20.0 && it.geo.lng > 105.0 }
             assertEquals("All stations must have valid Hanoi coordinates", stations.size, validCoords.size)
 
-            // Verify station 5910 (Cổng tòa chung cư IEC) contains 125 in fleetOver
-            val iecStation = stations.find { it.objectId == 5910L }
-            assertNotNull("Station 5910 (Cổng tòa chung cư IEC) should exist", iecStation)
-            assertTrue("Station 5910 should have route 125 in fleetOver", iecStation?.fleetOver?.contains("125") == true)
+            // Verify station 5551 ((A) BX Thường Tín - Tuyến 125) contains 125 in fleetOver
+            val thuongTinStation = stations.find { it.objectId == 5551L }
+            assertNotNull("Station 5551 ((A) BX Thường Tín - Tuyến 125) should exist", thuongTinStation)
+            assertTrue("Station 5551 should have route 125 in fleetOver", thuongTinStation?.fleetOver?.contains("125") == true)
         }
     }
 
@@ -135,8 +135,8 @@ class BusRepositoryTest {
         val repository = TimbusRepository()
         val route125 = DefaultRoutes.allRoutes.find { it.code == "125" }
         assertNotNull("Route 125 should exist in catalog", route125)
-        assertTrue("Route 125 name should mention Giáp Bát", route125?.name?.contains("Giáp Bát") == true)
-        assertEquals("Bến xe Giáp Bát - Vân Đình", route125?.name)
+        assertTrue("Route 125 name should mention Thường Tín", route125?.name?.contains("Thường Tín") == true)
+        assertEquals("Bến xe Thường Tín - Tế Tiêu", route125?.name)
 
         val result = repository.getRouteDetail(route125!!)
         assertTrue("Fetching Route 125 should succeed", result.isSuccess)
@@ -149,17 +149,15 @@ class BusRepositoryTest {
         assertTrue("Route 125 Go direction should have >= 45 stations", goStations.size >= 45)
         assertTrue("Route 125 Re direction should have >= 45 stations", reStations.size >= 45)
         
-        val iecStationGo = goStations.find { it.objectId == 5910L }
-        val iecStationRe = reStations.find { it.objectId == 5910L }
-        assertNotNull("Station 5910 (Cổng tòa chung cư IEC) must be in Route 125 Go stops", iecStationGo)
-        assertNotNull("Station 5910 (Cổng tòa chung cư IEC) must be in Route 125 Re stops", iecStationRe)
-        assertTrue("Station name should mention Cổng tòa chung cư IEC", iecStationGo?.name?.contains("Cổng tòa chung cư IEC") == true)
+        val ttStationGo = goStations.firstOrNull()
+        val teTieuStationGo = goStations.lastOrNull()
+        assertTrue("Go start terminal should be Thường Tín", ttStationGo?.name?.contains("Thường Tín") == true)
+        assertTrue("Go end terminal should be Tế Tiêu", teTieuStationGo?.name?.contains("Tế Tiêu") == true)
 
-        // Verify end station is Vân Đình
-        val vanDinhGo = goStations.lastOrNull()
-        val vanDinhRe = reStations.firstOrNull()
-        assertTrue("Go terminal should be Vân Đình", vanDinhGo?.name?.contains("Vân Đình") == true)
-        assertTrue("Re origin should be Vân Đình", vanDinhRe?.name?.contains("Vân Đình") == true)
+        val teTieuStationRe = reStations.firstOrNull()
+        val ttStationRe = reStations.lastOrNull()
+        assertTrue("Re start terminal should be Tế Tiêu", teTieuStationRe?.name?.contains("Tế Tiêu") == true)
+        assertTrue("Re end terminal should be Thường Tín", ttStationRe?.name?.contains("Thường Tín") == true)
     }
 
     @Test

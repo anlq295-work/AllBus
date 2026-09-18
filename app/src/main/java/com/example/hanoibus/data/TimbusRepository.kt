@@ -52,9 +52,6 @@ class TimbusRepository(
     }
 
     suspend fun getRouteDetail(route: BusRoute): Result<RouteDetail> = withContext(Dispatchers.IO) {
-        if (route.code.equals("125", ignoreCase = true)) {
-            return@withContext Result.success(Route125Detail.getRoute125Detail())
-        }
         val fid = if (route.fleetId > 0) route.fleetId.toString() else route.code
         val res = getRouteDetailByFid(fid)
         if (res.isSuccess) {
@@ -64,9 +61,6 @@ class TimbusRepository(
     }
 
     suspend fun getRouteDetail(routeCode: String): Result<RouteDetail> = withContext(Dispatchers.IO) {
-        if (routeCode.equals("125", ignoreCase = true)) {
-            return@withContext Result.success(Route125Detail.getRoute125Detail())
-        }
         val matched = DefaultRoutes.allRoutes.find { it.code.equals(routeCode, ignoreCase = true) }
         val fid = if (matched != null && matched.fleetId > 0) matched.fleetId.toString() else routeCode
         val res = getRouteDetailByFid(fid)
@@ -86,8 +80,14 @@ class TimbusRepository(
             return Result.failure(Exception("Không tìm thấy thông tin lộ trình của tuyến $clean."))
         }
 
-        val first = stations.firstOrNull()?.name ?: ""
-        val last = stations.lastOrNull()?.name ?: ""
+        val termA = stations.find { it.name.contains("(A)", ignoreCase = true) } ?: stations.firstOrNull()
+        val termB = stations.find { it.name.contains("(B)", ignoreCase = true) } ?: stations.lastOrNull()
+        val first = termA?.name ?: stations.firstOrNull()?.name ?: ""
+        val last = termB?.name ?: stations.lastOrNull()?.name ?: ""
+
+        val goStations = sortStationsAlongCorridor(stations, termA)
+        val reStations = sortStationsAlongCorridor(stations, termB)
+
         val electricInfo = ElectricBusCatalog.getInfo(clean)
         val enterprise = electricInfo?.enterprise ?: "Tổng công ty Vận tải Hà Nội (Transerco)"
         val opsTime = electricInfo?.operationsTime ?: "05:00 - 21:00"
@@ -108,15 +108,35 @@ class TimbusRepository(
             go = DirectionDetail(
                 anomaly = 0,
                 routeDescription = "$first ➔ $last",
-                stations = stations
+                stations = goStations
             ),
             re = DirectionDetail(
                 anomaly = 0,
                 routeDescription = "$last ➔ $first",
-                stations = stations.reversed()
+                stations = reStations
             )
         )
         return Result.success(detail)
+    }
+
+    private fun sortStationsAlongCorridor(stations: List<BusStation>, startTerminal: BusStation?): List<BusStation> {
+        val valid = stations.filter { it.geo != null && it.geo.lat != 0.0 && it.geo.lng != 0.0 }
+        if (valid.size <= 2) return stations
+        val start = startTerminal ?: valid.first()
+        val remaining = valid.filter { it.objectId != start.objectId }.toMutableList()
+        val sorted = mutableListOf(start)
+        var current = start
+        while (remaining.isNotEmpty()) {
+            val next = remaining.minByOrNull { s ->
+                val dLat = (s.geo?.lat ?: 0.0) - (current.geo?.lat ?: 0.0)
+                val dLng = (s.geo?.lng ?: 0.0) - (current.geo?.lng ?: 0.0)
+                dLat * dLat + dLng * dLng
+            } ?: break
+            sorted.add(next)
+            remaining.remove(next)
+            current = next
+        }
+        return sorted
     }
 
     private suspend fun getRouteDetailByFid(fid: String): Result<RouteDetail> = withContext(Dispatchers.IO) {
