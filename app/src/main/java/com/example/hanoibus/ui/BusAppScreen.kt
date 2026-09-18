@@ -521,6 +521,40 @@ fun RouteDetailContent(
     val stations = directionData?.stations ?: emptyList()
     val routeGeo = directionData?.geo ?: emptyList()
 
+    val totalRouteKm = remember(routeGeo, stations) {
+        if (routeGeo.size >= 2) {
+            var sumMeters = 0.0
+            for (i in 0 until routeGeo.size - 1) {
+                sumMeters += TransitRoutingEngine.calculateDistanceMeters(
+                    routeGeo[i].lat, routeGeo[i].lng,
+                    routeGeo[i + 1].lat, routeGeo[i + 1].lng
+                )
+            }
+            sumMeters / 1000.0
+        } else if (stations.size >= 2) {
+            var sumMeters = 0.0
+            for (i in 0 until stations.size - 1) {
+                val g1 = stations[i].geo
+                val g2 = stations[i + 1].geo
+                if (g1 != null && g2 != null) {
+                    sumMeters += TransitRoutingEngine.calculateDistanceMeters(g1.lat, g1.lng, g2.lat, g2.lng)
+                }
+            }
+            sumMeters / 1000.0
+        } else {
+            0.0
+        }
+    }
+    val fullLineQrFare = if (totalRouteKm > 0.0) TransitRoutingEngine.calculateBusFare((totalRouteKm * 1000).toInt()) else 0
+    val standardCashFare = when {
+        totalRouteKm <= 0.0 -> detail.cost ?: "8.000đ"
+        totalRouteKm < 15.0 -> "8.000đ"
+        totalRouteKm < 25.0 -> "10.000đ"
+        totalRouteKm < 30.0 -> "12.000đ"
+        totalRouteKm < 40.0 -> "15.000đ"
+        else -> "20.000đ"
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         // Summary Card
         Card(
@@ -542,24 +576,31 @@ fun RouteDetailContent(
                 ) {
                     InfoItem(label = "Thời gian chạy", value = detail.operationsTime?.split(";")?.firstOrNull()?.replace("0|", "") ?: "05:00 - 22:30")
                     InfoItem(label = "Tần suất", value = detail.frequency ?: "10 - 15p")
+                    InfoItem(
+                        label = "Cự ly tuyến",
+                        value = if (totalRouteKm > 0) String.format(java.util.Locale.US, "%.1f km", totalRouteKm) else "${stations.size} trạm"
+                    )
                     InfoItem(label = "Giá mở cửa", value = "3.000đ + 450đ/km")
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), thickness = 0.8.dp)
                 Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "💳", fontSize = 13.sp, modifier = Modifier.padding(end = 6.dp))
+                        Text(
+                            text = "Biểu giá cự ly mới: Giá mở cửa 3.000đ + (Cự ly × 450đ/km)",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "💳",
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(end = 6.dp)
-                    )
-                    Text(
-                        text = "Biểu giá cự ly mới: 3.000đ mở cửa + 450đ/km (quét thẻ/QR khi lên & xuống xe). ${if (!detail.cost.isNullOrBlank()) "Suốt tuyến/tiền mặt: ${detail.cost}." else ""}",
+                        text = "• Vé điện tử/QR: Quét khi lên & xuống xe. Nếu không quét khi xuống: tính cước đến cuối tuyến${if (fullLineQrFare > 0) " (~${java.text.NumberFormat.getInstance().format(fullLineQrFare)}đ)" else ""}.\n• Vé giấy / suốt tuyến tiền mặt: $standardCashFare${if (!detail.cost.isNullOrBlank() && !detail.cost.contains(standardCashFare)) " (hoặc ${detail.cost})" else ""}.",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 16.sp
                     )
                 }
             }
@@ -678,6 +719,7 @@ fun RouteDetailContent(
                     StationMapEtaCard(
                         index = if (selectedIndex > 0) selectedIndex else 1,
                         station = selected,
+                        stations = stations,
                         state = state,
                         onRefresh = onRefreshEta,
                         modifier = Modifier
@@ -707,6 +749,7 @@ fun RouteDetailContent(
                             isFirst = index == 0,
                             isLast = index == stations.size - 1,
                             station = station,
+                            stations = stations,
                             onClick = { onStationSelect(station) }
                         )
                     }
@@ -720,10 +763,30 @@ fun RouteDetailContent(
 fun StationMapEtaCard(
     index: Int,
     station: BusStation,
+    stations: List<BusStation> = emptyList(),
     state: BusUiState,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val distFromStartKm = remember(stations, index) {
+        if (stations.size >= 2 && index > 1) {
+            var sumM = 0.0
+            val limit = (index - 1).coerceAtMost(stations.size - 1)
+            for (j in 0 until limit) {
+                val g1 = stations[j].geo
+                val g2 = stations[j + 1].geo
+                if (g1 != null && g2 != null) {
+                    sumM += TransitRoutingEngine.calculateDistanceMeters(g1.lat, g1.lng, g2.lat, g2.lng)
+                }
+            }
+            sumM / 1000.0
+        } else {
+            0.0
+        }
+    }
+    val estFare = if (distFromStartKm > 0) TransitRoutingEngine.calculateBusFare((distFromStartKm * 1000).toInt()) else 3000
+    val cleanFleets = station.fleetOver?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() && it != "6969" }?.joinToString(", ") ?: "Đang cập nhật"
+
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
@@ -765,12 +828,22 @@ fun StationMapEtaCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Mã trạm: ${station.code ?: station.objectId} • Tuyến qua: ${station.fleetOver ?: "Đang cập nhật"}",
+                            text = "Mã trạm: ${station.code ?: station.objectId} • Tuyến qua: $cleanFleets",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
+                        if (index > 1 && distFromStartKm > 0.0) {
+                            Text(
+                                text = "📍 Cách bến đầu ~${String.format(java.util.Locale.US, "%.1f", distFromStartKm)} km • Vé QR: ${java.text.NumberFormat.getInstance().format(estFare)}đ",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF2E7D32),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
 
@@ -1060,8 +1133,28 @@ fun StationTimelineItem(
     isFirst: Boolean,
     isLast: Boolean,
     station: BusStation,
+    stations: List<BusStation> = emptyList(),
     onClick: () -> Unit
 ) {
+    val distFromStartKm = remember(stations, index) {
+        if (stations.size >= 2 && index > 1) {
+            var sumM = 0.0
+            val limit = (index - 1).coerceAtMost(stations.size - 1)
+            for (j in 0 until limit) {
+                val g1 = stations[j].geo
+                val g2 = stations[j + 1].geo
+                if (g1 != null && g2 != null) {
+                    sumM += TransitRoutingEngine.calculateDistanceMeters(g1.lat, g1.lng, g2.lat, g2.lng)
+                }
+            }
+            sumM / 1000.0
+        } else {
+            0.0
+        }
+    }
+    val estFare = if (distFromStartKm > 0) TransitRoutingEngine.calculateBusFare((distFromStartKm * 1000).toInt()) else 3000
+    val cleanFleets = station.fleetOver?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() && it != "6969" }?.joinToString(", ") ?: ""
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1120,12 +1213,24 @@ fun StationTimelineItem(
                     fontWeight = FontWeight.SemiBold
                 )
 
-                if (!station.fleetOver.isNullOrEmpty()) {
+                if (cleanFleets.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(3.dp))
                     Text(
-                        text = "Tuyến qua trạm: ${station.fleetOver}",
+                        text = "Tuyến qua trạm: $cleanFleets",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                if (!isFirst && distFromStartKm > 0.0) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "📍 Cách bến đầu ~${String.format(java.util.Locale.US, "%.1f", distFromStartKm)} km • Vé QR: ${java.text.NumberFormat.getInstance().format(estFare)}đ",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF2E7D32),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )

@@ -10093,7 +10093,7 @@
     "ObjectID": 1171,
     "Code": "1171",
     "Name": "Công ty CP XNK vật tư Nông Nghiệp - Ngũ Hiệp",
-    "FleetOver": "08A,08ACT",
+    "FleetOver": "08A,08ACT,08B,08BCT",
     "Geo": {
       "Lat": 20.92495,
       "Lng": 105.852483333333
@@ -38033,7 +38033,7 @@
     "ObjectID": 1169,
     "Code": "1169",
     "Name": "Đình làng Tương Chúc - Ngũ Hiệp",
-    "FleetOver": "08A,08ACT",
+    "FleetOver": "08A,08ACT,08B,08BCT",
     "Geo": {
       "Lat": 20.9197666666667,
       "Lng": 105.8647
@@ -41173,7 +41173,7 @@
     "ObjectID": 1162,
     "Code": "1162",
     "Name": "Đối diện Công ty CP XNK vật tư Nông Nghiệp - Ngũ Hiệp",
-    "FleetOver": "08A,08ACT",
+    "FleetOver": "08A,08ACT,08B,08BCT",
     "Geo": {
       "Lat": 20.9248166666667,
       "Lng": 105.852533333333
@@ -46473,7 +46473,7 @@
     "ObjectID": 1164,
     "Code": "1164",
     "Name": "Đối diện làng Tương Chúc - Ngũ Hiệp",
-    "FleetOver": "08A,08ACT",
+    "FleetOver": "08A,08ACT,08B,08BCT",
     "Geo": {
       "Lat": 20.9199,
       "Lng": 105.86445

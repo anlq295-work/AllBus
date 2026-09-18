@@ -47,8 +47,11 @@ class TimbusRepository(
         val reader = InputStreamReader(stream, Charsets.UTF_8)
         val type = object : TypeToken<List<BusStation>>() {}.type
         val stations: List<BusStation> = gson.fromJson(reader, type) ?: emptyList()
-        cachedStations = stations
-        return stations
+        val sanitizedStations = stations.map { s ->
+            s.copy(fleetOver = sanitizeFleetOver(s.fleetOver))
+        }
+        cachedStations = sanitizedStations
+        return sanitizedStations
     }
 
     suspend fun getRouteDetail(route: BusRoute): Result<RouteDetail> = withContext(Dispatchers.IO) {
@@ -169,7 +172,8 @@ class TimbusRepository(
 
             val st = jsonObj.get("st")?.asBoolean ?: false
             if (st && jsonObj.has("dt") && jsonObj.get("dt").isJsonObject) {
-                val detail = gson.fromJson(jsonObj.get("dt"), RouteDetail::class.java)
+                val rawDetail = gson.fromJson(jsonObj.get("dt"), RouteDetail::class.java)
+                val detail = sanitizeRouteDetail(rawDetail)
                 Result.success(detail)
             } else {
                 val msg = if (jsonObj.has("msg") && !jsonObj.get("msg").isJsonNull) {
@@ -189,13 +193,35 @@ class TimbusRepository(
         }
     }
 
+    private fun sanitizeRouteDetail(detail: RouteDetail): RouteDetail {
+        val sanitizedGoStations = detail.go?.stations?.map { s ->
+            s.copy(fleetOver = sanitizeFleetOver(s.fleetOver))
+        } ?: emptyList()
+        val sanitizedReStations = detail.re?.stations?.map { s ->
+            s.copy(fleetOver = sanitizeFleetOver(s.fleetOver))
+        } ?: emptyList()
+
+        return detail.copy(
+            go = detail.go?.copy(stations = sanitizedGoStations),
+            re = detail.re?.copy(stations = sanitizedReStations)
+        )
+    }
+
+    private fun sanitizeFleetOver(fleetOver: String?): String {
+        if (fleetOver.isNullOrBlank()) return ""
+        return fleetOver.split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && it != "6969" }
+            .joinToString(",")
+    }
+
     suspend fun getBusEta(stationId: Long, fleetOver: String = ""): Result<List<BusEta>> = withContext(Dispatchers.IO) {
         try {
             val body = FormBody.Builder()
                 .add("act", "partremained")
                 .add("State", "true")
                 .add("StationID", stationId.toString())
-                .add("FleetOver", fleetOver)
+                .add("FleetOver", sanitizeFleetOver(fleetOver))
                 .build()
 
             val request = Request.Builder()
@@ -223,7 +249,12 @@ class TimbusRepository(
             if (st && jsonObj.has("dt") && jsonObj.get("dt").isJsonArray) {
                 val type = object : TypeToken<List<BusEta>>() {}.type
                 val list: List<BusEta> = gson.fromJson(jsonObj.get("dt"), type)
-                Result.success(list)
+                val sanitizedList = list.filter {
+                    val code = it.fleetCode?.trim() ?: ""
+                    val fleet = it.fleet?.trim() ?: ""
+                    code != "6969" && fleet != "6969"
+                }
+                Result.success(sanitizedList)
             } else {
                 Result.success(emptyList())
             }

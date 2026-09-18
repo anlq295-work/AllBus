@@ -57,7 +57,7 @@ fun BusMapView(
                 "lat" to (s.geo?.lat ?: 0.0),
                 "lng" to (s.geo?.lng ?: 0.0),
                 "index" to (index + 1),
-                "fleetOver" to (s.fleetOver ?: "")
+                "fleetOver" to (s.fleetOver?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() && it != "6969" }?.joinToString(", ") ?: "")
             )
         }
         Gson().toJson(mapped)
