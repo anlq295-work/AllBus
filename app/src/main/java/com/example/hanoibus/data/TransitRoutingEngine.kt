@@ -51,6 +51,17 @@ object TransitRoutingEngine {
         getCachedStations(allStations)
     }
 
+    /**
+     * Tính giá vé xe buýt Hà Nội theo biểu giá cự ly mới (QĐ 3316/QĐ-UBND):
+     * Giá vé = Giá mở cửa (3.000đ) + (Cự ly di chuyển km x 450đ/km)
+     * Làm tròn lên bội số 500đ gần nhất.
+     */
+    fun calculateBusFare(distanceMeters: Int): Int {
+        val km = distanceMeters / 1000.0
+        val rawFare = 3000.0 + (km * 450.0)
+        return (ceil(rawFare / 500.0) * 500).toInt().coerceAtLeast(3000)
+    }
+
     private fun getCachedStations(allStations: List<BusStation>): List<CachedStationSearch> {
         val existing = cachedSearchStations
         if (existing != null && existing.size == allStations.size) return existing
@@ -283,12 +294,15 @@ object TransitRoutingEngine {
                     val totalDist = (origDist + busRideDist + destDist).roundToInt()
                     val totalWalkDist = (origDist + destDist).roundToInt()
 
+                    val busFare = calculateBusFare(busRideDist.roundToInt())
+                    val busKm = busRideDist / 1000.0
+
                     tripOptions.add(
                         TripOption(
                             summary = "Tuyến $routeCode (${totalMin} phút, 0 lần đổi xe)",
                             totalDurationMinutes = totalMin,
                             totalDistanceMeters = totalDist,
-                            totalFareVnd = 8000,
+                            totalFareVnd = busFare,
                             walkDistanceMeters = totalWalkDist,
                             busTransferCount = 0,
                             segments = listOf(
@@ -305,7 +319,7 @@ object TransitRoutingEngine {
                                 TripSegment(
                                     type = TripSegmentType.BUS,
                                     title = "Lên xe buýt $routeCode",
-                                    instruction = "Đón xe buýt $routeCode tại trạm ${origStation.name}, đi khoảng ${busMin - 3} phút đến trạm ${destStation.name}.",
+                                    instruction = "Đón xe buýt $routeCode tại trạm ${origStation.name}, đi khoảng ${busMin - 3} phút (~${String.format(java.util.Locale.US, "%.1f", busKm)} km, cước: ~${String.format(java.util.Locale.US, "%,d", busFare)}đ tính theo cự ly 3.000đ mở cửa + 450đ/km) đến trạm ${destStation.name}.",
                                     routeCode = routeCode,
                                     fromPlaceName = origStation.name,
                                     toPlaceName = destStation.name,
@@ -386,12 +400,18 @@ object TransitRoutingEngine {
                             val totalDist = (origDist + ride1Dist + ride2Dist + destDist).roundToInt()
                             val totalWalkDist = (origDist + destDist).roundToInt()
 
+                            val fare1 = calculateBusFare(ride1Dist.roundToInt())
+                            val fare2 = calculateBusFare(ride2Dist.roundToInt())
+                            val km1 = ride1Dist / 1000.0
+                            val km2 = ride2Dist / 1000.0
+                            val totalFare = fare1 + fare2
+
                             tripOptions.add(
                                 TripOption(
                                     summary = "Tuyến $route1 ➔ Tuyến $route2 (${totalMin} phút, 1 chuyển tuyến)",
                                     totalDurationMinutes = totalMin,
                                     totalDistanceMeters = totalDist,
-                                    totalFareVnd = 16000,
+                                    totalFareVnd = totalFare,
                                     walkDistanceMeters = totalWalkDist,
                                     busTransferCount = 1,
                                     segments = listOf(
@@ -408,7 +428,7 @@ object TransitRoutingEngine {
                                         TripSegment(
                                             type = TripSegmentType.BUS,
                                             title = "Lên xe buýt $route1",
-                                            instruction = "Đi xe buýt $route1 từ ${origStation.name} đến điểm trung chuyển ${transferStation.name}.",
+                                            instruction = "Đi xe buýt $route1 từ ${origStation.name} đến điểm trung chuyển ${transferStation.name} (~${String.format(java.util.Locale.US, "%.1f", km1)} km, cước ~${String.format(java.util.Locale.US, "%,d", fare1)}đ).",
                                             routeCode = route1,
                                             fromPlaceName = origStation.name,
                                             toPlaceName = transferStation.name,
@@ -421,7 +441,7 @@ object TransitRoutingEngine {
                                         TripSegment(
                                             type = TripSegmentType.BUS,
                                             title = "Chuyển sang xe buýt $route2",
-                                            instruction = "Tại trạm ${transferStation.name}, đón tiếp xe buýt $route2 đi đến trạm ${destStation.name}.",
+                                            instruction = "Tại trạm ${transferStation.name}, đón tiếp xe buýt $route2 đi đến trạm ${destStation.name} (~${String.format(java.util.Locale.US, "%.1f", km2)} km, cước ~${String.format(java.util.Locale.US, "%,d", fare2)}đ).",
                                             routeCode = route2,
                                             fromPlaceName = transferStation.name,
                                             toPlaceName = destStation.name,
@@ -724,15 +744,55 @@ object TransitRoutingEngine {
                     val res = repository.getRouteDetail(cleanCode)
                     res.getOrNull() ?: RouteDetail()
                 }
+                val inGo = detail.go?.stations?.any {
+                    it.objectId == targetStation.objectId || (!targetStation.code.isNullOrEmpty() && it.code.equals(targetStation.code, ignoreCase = true))
+                } ?: false
+                val inRe = detail.re?.stations?.any {
+                    it.objectId == targetStation.objectId || (!targetStation.code.isNullOrEmpty() && it.code.equals(targetStation.code, ignoreCase = true))
+                } ?: false
+
                 val goGeo = detail.go?.geo ?: emptyList()
                 val reGeo = detail.re?.geo ?: emptyList()
 
-                val distGo = goGeo.minOfOrNull { calculateDistanceMeters(it.lat, it.lng, targetGeo.lat, targetGeo.lng) } ?: Double.MAX_VALUE
-                val distRe = reGeo.minOfOrNull { calculateDistanceMeters(it.lat, it.lng, targetGeo.lat, targetGeo.lng) } ?: Double.MAX_VALUE
-
-                candidateGeo = if (distGo <= distRe && goGeo.isNotEmpty()) goGeo else reGeo
+                candidateGeo = when {
+                    inGo && goGeo.isNotEmpty() -> goGeo
+                    inRe && reGeo.isNotEmpty() -> reGeo
+                    else -> {
+                        val distGo = goGeo.minOfOrNull { calculateDistanceMeters(it.lat, it.lng, targetGeo.lat, targetGeo.lng) } ?: Double.MAX_VALUE
+                        val distRe = reGeo.minOfOrNull { calculateDistanceMeters(it.lat, it.lng, targetGeo.lat, targetGeo.lng) } ?: Double.MAX_VALUE
+                        if (distGo <= distRe && goGeo.isNotEmpty()) goGeo else reGeo
+                    }
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "Error loading route geometry for $cleanCode: ${e.message}")
+            }
+        }
+
+        // If candidateGeo is still empty (e.g. VinBus or routes without Geo in Timbus), use real stations matching routeCode
+        if (candidateGeo.isEmpty() && cachedSearchStations != null) {
+            val cleanCode = routeCode.trim().uppercase()
+            val matching = cachedSearchStations?.filter {
+                val fo = it.station.fleetOver ?: ""
+                parseFleetOver(fo).contains(cleanCode)
+            }?.map { it.station } ?: emptyList()
+
+            if (matching.size >= 2) {
+                val targetIdx = matching.indexOfFirst { it.objectId == targetStation.objectId }
+                val routeStations = if (targetIdx >= 0) {
+                    val fromIdx = max(0, targetIdx - 6)
+                    matching.subList(fromIdx, targetIdx + 1)
+                } else {
+                    matching.sortedBy { calculateDistanceMeters(it.geo?.lat ?: 0.0, it.geo?.lng ?: 0.0, targetGeo.lat, targetGeo.lng) }.take(5).reversed() + listOf(targetStation)
+                }
+
+                if (routeStations.size >= 2) {
+                    val roadCoords = RoadRoutingService.fetchRoadRoute(routeStations)
+                    if (!roadCoords.isNullOrEmpty()) {
+                        candidateGeo = roadCoords.map { GeoPoint(it[0], it[1]) }
+                    } else {
+                        candidateGeo = routeStations.mapNotNull { it.geo }
+                    }
+                }
             }
         }
 

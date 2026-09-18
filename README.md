@@ -1,6 +1,6 @@
-﻿# 🚌 AllBus - Ứng Dụng Tra Cứu Xe Buýt & Lộ Trình Hà Nội
+# 🚌 AllBus - Ứng Dụng Tra Cứu Xe Buýt & Lộ Trình Hà Nội
 
-**AllBus** (v1.0 - Build 1) là ứng dụng Android hiện đại hỗ trợ tra cứu lộ trình xe buýt thông minh, theo dõi vị trí xe buýt theo thời gian thực và tích hợp thẻ vé điện tử tại Hà Nội.
+**AllBus** (v1.1 - Build 2) là ứng dụng Android hiện đại hỗ trợ tra cứu lộ trình xe buýt thông minh, theo dõi vị trí xe buýt theo thời gian thực và tích hợp thẻ vé điện tử tại Hà Nội.
 
 ---
 

@@ -14,7 +14,7 @@ object DefaultRoutes {
         BusRoute(fleetId = 803, code = "03B", name = "Bến xe Nước Ngầm - Giang Biên (Long Biên)", fullName = "03B - Bến xe Nước Ngầm - Giang Biên (Long Biên)"),
         BusRoute(fleetId = 4, code = "04", name = "Long Biên - Bệnh viện Nội tiết trung ương cơ sở 2", fullName = "04 - Long Biên - Bệnh viện Nội tiết trung ương cơ sở 2"),
         BusRoute(fleetId = 204, code = "04CT", name = "Long Biên - Bệnh viện Nội tiết Trung ương cơ sở 2", fullName = "04CT - Long Biên - Bệnh viện Nội tiết Trung ương cơ sở 2"),
-        BusRoute(fleetId = 605, code = "05", name = "MAI ĐỘNG - ĐẠI HỌC TÀI NGUYÊN VÀ MÔI TRƯỜNG HÀ NỘI", fullName = "05 - MAI ĐỘNG - ĐẠI HỌC TÀI NGUYÊN VÀ MÔI TRƯỜNG HÀ NỘI"),
+        BusRoute(fleetId = 505, code = "05", name = "KĐT Linh Đàm - Phú Diễn", fullName = "05 - KĐT Linh Đàm - Phú Diễn"),
         BusRoute(fleetId = 505, code = "05A", name = "KĐT Linh Đàm - Phú Diễn", fullName = "05A - KĐT Linh Đàm - Phú Diễn"),
         BusRoute(fleetId = 5, code = "05A1", name = "KĐT Linh Đàm - Phú Diễn", fullName = "05A1 - KĐT Linh Đàm - Phú Diễn"),
         BusRoute(fleetId = 6, code = "06A", name = "Bến xe Giáp Bát - Cầu Giẽ", fullName = "06A - Bến xe Giáp Bát - Cầu Giẽ"),

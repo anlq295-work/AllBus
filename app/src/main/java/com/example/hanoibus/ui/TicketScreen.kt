@@ -498,6 +498,11 @@ fun TicketScreen(
                 Icons.Default.Train,
                 "Liên thông Xe buýt & Metro",
                 "Mã QR từ hệ thống dùng được trên toàn bộ xe buýt trợ giá Hà Nội (Transerco, VinBus, Bảo Yến) và các tuyến Đường sắt đô thị (Cát Linh - Hà Đông, Nhổn - Ga Hà Nội)."
+            ),
+            Triple(
+                Icons.Default.Payments,
+                "Biểu giá vé theo cự ly mới (QĐ 3316/UBND)",
+                "Giá mở cửa 3.000đ + 450đ/km khi thanh toán không dùng tiền mặt (Thẻ vé điện tử/QR). Bắt buộc chạm thẻ khi lên và khi xuống xe để tính đúng cự ly. Thanh toán tiền mặt hoặc không chạm khi xuống sẽ bị tính cước đến cuối tuyến."
             )
         )
 
@@ -544,7 +549,7 @@ fun TicketScreen(
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         ) {
             Text(
-                text = "AllBus v1.0 (Build 1) • Tra cứu xe buýt Hà Nội",
+                text = "AllBus v1.1 (Build 2) • Tra cứu xe buýt Hà Nội",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.outline,

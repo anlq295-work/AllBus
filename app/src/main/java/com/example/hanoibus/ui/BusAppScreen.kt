@@ -530,16 +530,38 @@ fun RouteDetailContent(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
             shape = RoundedCornerShape(10.dp)
         ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
-                InfoItem(label = "Thời gian chạy", value = detail.operationsTime?.split(";")?.firstOrNull()?.replace("0|", "") ?: "05:00 - 22:30")
-                InfoItem(label = "Tần suất", value = detail.frequency ?: "10 - 15p")
-                InfoItem(label = "Giá vé", value = detail.cost ?: "10.000đ")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    InfoItem(label = "Thời gian chạy", value = detail.operationsTime?.split(";")?.firstOrNull()?.replace("0|", "") ?: "05:00 - 22:30")
+                    InfoItem(label = "Tần suất", value = detail.frequency ?: "10 - 15p")
+                    InfoItem(label = "Giá mở cửa", value = "3.000đ + 450đ/km")
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), thickness = 0.8.dp)
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "💳",
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(end = 6.dp)
+                    )
+                    Text(
+                        text = "Biểu giá cự ly mới: 3.000đ mở cửa + 450đ/km (quét thẻ/QR khi lên & xuống xe). ${if (!detail.cost.isNullOrBlank()) "Suốt tuyến/tiền mặt: ${detail.cost}." else ""}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 

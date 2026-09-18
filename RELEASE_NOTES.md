@@ -1,11 +1,30 @@
-﻿# 📢 AllBus v1.0 (Build 1) - Official Release Notes
+# 📢 AllBus Release Notes
+
+---
+
+## 🚀 AllBus v1.1 (Build 2)
 
 **Ngày phát hành:** 18/09/2026  
-**Phiên bản:** `1.0` (Build `1`)  
+**Phiên bản:** `1.1` (Build `2`)  
 **Package:** `com.example.hanoibus`  
 **Hệ điều hành hỗ trợ:** Android 8.0 (API 26) trở lên  
 
+### 🌟 Điểm mới trong bản cập nhật v1.1 (Build 2)
+
+1. 🧭 **Sửa lộ trình và trạm dừng các tuyến xe buýt**:
+   - **Khắc phục tuyến 125 (Giáp Bát - Vân Đình)**: Loại bỏ các điểm bến cuối bị gán nhầm (Bến Đông Mỹ - 08A, Bến Vạn Phúc - 08B, Bến Hồng Vân - 06B) khiến xe bị đánh dấu lệch khỏi đường thực tế; khôi phục đúng lộ trình chuẩn dọc hành lang giao thông.
+   - **Khắc phục tuyến 05**: Cập nhật chuẩn tên bến "KĐT Linh Đàm - Phú Diễn" (fleetId: 505) thay vì dữ liệu tuyến cũ Mai Động.
+   - **Hỗ trợ đầy đủ các tuyến buýt điện (VinBus E01 - E10)**: Tự động tổng hợp danh sách trạm dừng và dựng đường đi theo đường giao thông thực tế qua OSRM khi hệ thống Timbus thiếu dữ liệu.
+   - **Chính xác hóa hướng di chuyển khi theo dõi xe sắp tới bến (Live Tracking)**: Nhận diện chính xác chiều đi (Go) / chiều về (Re) dựa trên trạm dừng thực tế thay vì cự ly ước lượng; bám đúng đường di chuyển của xe hướng về trạm đón.
+
+2. 💳 **Cập nhật Biểu giá vé theo cự ly mới (Quyết định 3316/QĐ-UBND)**:
+   - Áp dụng công thức tính giá vé lượt mới: **Giá mở cửa 3.000đ + (Cự ly thực đi x 450đ/km)** khi thanh toán bằng Thẻ vé điện tử / quét mã QR liên thông.
+   - **Tích hợp trong Tìm đường (Trip Planner)**: Giá cước từng chặng và tổng chuyến đi được tính động chính xác theo cự ly km của từng tuyến xe buýt thay vì giá vé cố định.
+   - **Ghi chú giá vé chi tiết**: Bổ sung bảng thông tin và lưu ý quy tắc chạm thẻ 2 lần (lên & xuống xe); cảnh báo trường hợp trả tiền mặt hoặc quên chạm thẻ khi xuống sẽ tính cước tối đa đến cuối tuyến.
+
 ---
+
+## 📢 AllBus v1.0 (Build 1)
 
 ## 🌟 Tổng quan phiên bản 1.0
 **AllBus v1.0** đánh dấu cột mốc phát hành chính thức đầu tiên của ứng dụng tra cứu xe buýt và lộ trình thông minh tại Hà Nội. Phiên bản này được xây dựng trên nền tảng công nghệ hiện đại (Jetpack Compose & Material 3), mang đến trải nghiệm nhanh chóng, trực quan, mượt mà và tích hợp sâu các tiện ích giao thông thực tế.

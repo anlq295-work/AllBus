@@ -56,7 +56,11 @@ class TimbusRepository(
             return@withContext Result.success(Route125Detail.getRoute125Detail())
         }
         val fid = if (route.fleetId > 0) route.fleetId.toString() else route.code
-        getRouteDetailByFid(fid)
+        val res = getRouteDetailByFid(fid)
+        if (res.isSuccess) {
+            return@withContext res
+        }
+        buildFallbackRouteDetail(route.code, route.name)
     }
 
     suspend fun getRouteDetail(routeCode: String): Result<RouteDetail> = withContext(Dispatchers.IO) {
@@ -65,7 +69,54 @@ class TimbusRepository(
         }
         val matched = DefaultRoutes.allRoutes.find { it.code.equals(routeCode, ignoreCase = true) }
         val fid = if (matched != null && matched.fleetId > 0) matched.fleetId.toString() else routeCode
-        getRouteDetailByFid(fid)
+        val res = getRouteDetailByFid(fid)
+        if (res.isSuccess) {
+            return@withContext res
+        }
+        buildFallbackRouteDetail(routeCode, matched?.name ?: "Tuyến $routeCode")
+    }
+
+    private fun buildFallbackRouteDetail(routeCode: String, routeName: String): Result<RouteDetail> {
+        val clean = routeCode.trim().uppercase()
+        val stations = cachedStations?.filter { s ->
+            s.fleetOver?.split(",")?.any { it.trim().equals(clean, ignoreCase = true) } == true
+        } ?: emptyList()
+
+        if (stations.isEmpty()) {
+            return Result.failure(Exception("Không tìm thấy thông tin lộ trình của tuyến $clean."))
+        }
+
+        val first = stations.firstOrNull()?.name ?: ""
+        val last = stations.lastOrNull()?.name ?: ""
+        val electricInfo = ElectricBusCatalog.getInfo(clean)
+        val enterprise = electricInfo?.enterprise ?: "Tổng công ty Vận tải Hà Nội (Transerco)"
+        val opsTime = electricInfo?.operationsTime ?: "05:00 - 21:00"
+        val freq = electricInfo?.frequency ?: "10 - 15 phút/chuyến"
+
+        val detail = RouteDetail(
+            fleetId = clean.filter { it.isDigit() }.toIntOrNull() ?: 0,
+            enterprise = enterprise,
+            code = clean,
+            name = routeName,
+            operationsTime = opsTime,
+            frequency = freq,
+            busCount = "${(stations.size / 4).coerceAtLeast(8)} xe",
+            cost = "3.000đ mở cửa + 450đ/km (Vé ĐT/QR) • Suốt tuyến: 8.000đ - 10.000đ",
+            costInt = 9000,
+            firstStation = first,
+            lastStation = last,
+            go = DirectionDetail(
+                anomaly = 0,
+                routeDescription = "$first ➔ $last",
+                stations = stations
+            ),
+            re = DirectionDetail(
+                anomaly = 0,
+                routeDescription = "$last ➔ $first",
+                stations = stations.reversed()
+            )
+        )
+        return Result.success(detail)
     }
 
     private suspend fun getRouteDetailByFid(fid: String): Result<RouteDetail> = withContext(Dispatchers.IO) {
